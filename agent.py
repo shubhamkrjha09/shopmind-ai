@@ -50,13 +50,43 @@ def track_order(order_id: int) -> str:
     if row is None:
         return "Order not found."
     return f"Order #{row[0]} ({row[1]}): {row[2]}"
+@tool
+def compare_products(product_id_1: int, product_id_2: int) -> str:
+    """Fetch specifications for two products so the user can compare them."""
+    conn = sqlite3.connect(DB)
+    rows = conn.execute(
+        """
+        SELECT id, name, category, brand, price, battery_mah, rating
+        FROM products
+        WHERE id IN (?, ?)
+        """,
+        (product_id_1, product_id_2),
+    ).fetchall()
+    conn.close()
+
+    if product_id_1 == product_id_2:
+        return "Please choose two different products."
+
+    if len(rows) != 2:
+        return "One or both product IDs were not found."
+
+    return "\n".join(
+        f"ID {row[0]}: {row[1]}, category: {row[2]}, "
+        f"brand: {row[3]}, price: Rs {row[4]}, "
+        f"battery: {row[5]} mAh, rating: {row[6]}"
+        for row in rows
+    )
 
 
-llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0)
+llm = ChatGroq(
+    model="qwen/qwen3.8-27b",
+    temperature=0,
+    max_tokens=400,
+)
 
 agent = create_agent(
     model=llm,
-    tools=[search_products, place_order, track_order],
+    tools=[search_products, place_order, track_order, compare_products],
     system_prompt="You are ShopMind AI, a shopping assistant for an electronics store. Only recommend products returned by your tools. Never invent products or prices. Before placing an order, always ask the user to confirm.",
 )
 
