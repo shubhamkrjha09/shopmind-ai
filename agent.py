@@ -50,6 +50,7 @@ def track_order(order_id: int) -> str:
     if row is None:
         return "Order not found."
     return f"Order #{row[0]} ({row[1]}): {row[2]}"
+
 @tool
 def compare_products(product_id_1: int, product_id_2: int) -> str:
     """Fetch specifications for two products so the user can compare them."""
