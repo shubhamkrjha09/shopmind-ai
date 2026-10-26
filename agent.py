@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_core.tools import tool
 from langchain.agents import create_agent
+from rag import search_policy
 
 load_dotenv()
 
@@ -50,6 +51,10 @@ def track_order(order_id: int) -> str:
     if row is None:
         return "Order not found."
     return f"Order #{row[0]} ({row[1]}): {row[2]}"
+@tool
+def search_return_policy(question: str) -> str:
+    """Search the store's return, replacement, refund and warranty policy. Use this for any question about returns, refunds, damaged items or warranty."""
+    return search_policy(question)
 
 @tool
 def compare_products(product_id_1: int, product_id_2: int) -> str:
@@ -87,8 +92,8 @@ llm = ChatGroq(
 
 agent = create_agent(
     model=llm,
-    tools=[search_products, place_order, track_order, compare_products],
-    system_prompt="You are ShopMind AI, a shopping assistant for an electronics store. Only recommend products returned by your tools. Never invent products or prices. Before placing an order, always ask the user to confirm.",
+    tools=[search_products, place_order, track_order, compare_products, search_return_policy],
+    system_prompt="You are ShopMind AI, a shopping assistant for an electronics store. Only recommend products returned by your tools. Never invent products or prices. Before placing an order, always ask the user to confirm. For questions about returns, refunds, damage or warranty, use search_return_policy and answer only from what it returns. You cannot approve refunds yourself.",
 )
 
 messages = []
