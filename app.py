@@ -1,9 +1,19 @@
 import streamlit as st
+import os
 
 from agent import agent
 
 st.title("🛒 ShopMind AI")
+
 st.caption("AI shopping & support assistant for an electronics store")
+uploaded = st.sidebar.file_uploader("📷 Upload a product photo", type=["jpg", "jpeg", "png"])
+image_path = None
+if uploaded:
+    os.makedirs("uploads", exist_ok=True)
+    image_path = os.path.join("uploads", uploaded.name)
+    with open(image_path, "wb") as f:
+        f.write(uploaded.getbuffer())
+    st.sidebar.image(uploaded, caption="Your photo")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
