@@ -1,6 +1,14 @@
 import streamlit as st
 import os
 
+if not os.path.exists("store.db"):
+    import setup_db  # creates store.db with the sample products
+
+from rag import collection, build_index
+
+if collection.count() == 0:
+    build_index()  # builds the return-policy search index
+
 from agent import agent
 
 st.title("🛒 ShopMind AI")
