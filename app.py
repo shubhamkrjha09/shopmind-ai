@@ -25,7 +25,8 @@ for msg in st.session_state.messages:
 question = st.chat_input("Ask about products, orders or returns...")
 
 if question:
-    st.session_state.messages.append({"role": "user", "content": question})
+    content = question if image_path is None else f"{question}\n(Photo: {image_path})"
+    st.session_state.messages.append({"role": "user", "content": content})
     with st.chat_message("user"):
         st.markdown(question)
 
