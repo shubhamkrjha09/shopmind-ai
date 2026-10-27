@@ -4,6 +4,7 @@ from langchain_groq import ChatGroq
 from langchain_core.tools import tool
 from langchain.agents import create_agent
 from rag import search_policy
+from vision import describe_image
 
 load_dotenv()
 
@@ -57,6 +58,22 @@ def search_return_policy(question: str) -> str:
     return search_policy(question)
 
 @tool
+def find_similar_products(image_path: str) -> str:
+    """Find products in the store similar to the product in a photo. Use when the user gives an image file path."""
+    info = describe_image(image_path)
+    conn = sqlite3.connect(DB)
+    rows = conn.execute(
+        "SELECT id, name, brand, price, rating FROM products WHERE category = ? "
+        "ORDER BY (brand = ?) DESC, rating DESC LIMIT 3",
+        (info["category"], info["brand"]),
+    ).fetchall()
+    conn.close()
+    if not rows:
+        return f"The photo looks like a {info['colour']} {info['category']}, but we have no similar products."
+    found = "\n".join(f"ID {r[0]}: {r[1]} ({r[2]}) - Rs {r[3]} - rating {r[4]}" for r in rows)
+    return f"Photo: {info['colour']} {info['brand']} {info['category']}.\nSimilar products:\n{found}"
+
+@tool
 def compare_products(product_id_1: int, product_id_2: int) -> str:
     """Fetch specifications for two products so the user can compare them."""
     conn = sqlite3.connect(DB)
@@ -92,7 +109,7 @@ llm = ChatGroq(
 
 agent = create_agent(
     model=llm,
-    tools=[search_products, place_order, track_order, compare_products, search_return_policy],
+    tools=[search_products, place_order, track_order, compare_products,find_similar_products, search_return_policy],
     system_prompt="You are ShopMind AI, a shopping assistant for an electronics store. Only recommend products returned by your tools. Never invent products or prices. Before placing an order, always ask the user to confirm. For questions about returns, refunds, damage or warranty, use search_return_policy and answer only from what it returns. You cannot approve refunds yourself.",
 )
 
