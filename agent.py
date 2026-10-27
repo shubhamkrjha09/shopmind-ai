@@ -144,12 +144,13 @@ agent = create_agent(
     system_prompt="You are ShopMind AI, a shopping assistant for an electronics store. Only recommend products returned by your tools. Never invent products or prices. Before placing an order, always ask the user to confirm. For questions about returns, refunds, damage or warranty, use search_return_policy and answer only from what it returns. You cannot approve refunds yourself.",
 )
 
-messages = []
-while True:
-    user = input("You: ")
-    if user.lower() in ["quit", "exit"]:
-        break
-    messages.append({"role": "user", "content": user})
-    result = agent.invoke({"messages": messages})
-    messages = result["messages"]
-    print("ShopMind:", messages[-1].content)
+if __name__ == "__main__":
+    messages = []
+    while True:
+        user = input("You: ")
+        if user.lower() in ["quit", "exit"]:
+            break
+        messages.append({"role": "user", "content": user})
+        result = agent.invoke({"messages": messages})
+        messages = result["messages"]
+        print("ShopMind:", messages[-1].content)
