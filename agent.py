@@ -74,6 +74,37 @@ def find_similar_products(image_path: str) -> str:
     return f"Photo: {info['colour']} {info['brand']} {info['category']}.\nSimilar products:\n{found}"
 
 @tool
+def check_damage_photo(image_path: str) -> str:
+    """Check a photo of a delivered product for damage and look up the return policy. Use when a customer says their item arrived damaged and gives a photo path."""
+    info = describe_image(image_path)
+    if not info["is_damaged"]:
+        return "No visible damage found in the photo. A support agent can still review it."
+    policy = search_policy("item arrived damaged or defective")
+    return f"Damage seen: {info['damage_description']}.\nRelevant policy:\n{policy}"
+
+
+@tool
+def create_return_request(order_id: int, reason: str) -> str:
+    """Create a return request for an order. Only call this AFTER the user confirms. It does NOT approve a refund; the support team reviews it."""
+    conn = sqlite3.connect(DB)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS return_requests "
+        "(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, reason TEXT, status TEXT)"
+    )
+    order = conn.execute("SELECT id FROM orders WHERE id = ?", (order_id,)).fetchone()
+    if order is None:
+        conn.close()
+        return "Order not found."
+    cur = conn.execute(
+        "INSERT INTO return_requests (order_id, reason, status) VALUES (?, ?, 'Pending review')",
+        (order_id, reason),
+    )
+    conn.commit()
+    request_id = cur.lastrowid
+    conn.close()
+    return f"Return request #{request_id} created for order #{order_id}. Status: Pending review by our support team."
+
+@tool
 def compare_products(product_id_1: int, product_id_2: int) -> str:
     """Fetch specifications for two products so the user can compare them."""
     conn = sqlite3.connect(DB)
@@ -109,7 +140,7 @@ llm = ChatGroq(
 
 agent = create_agent(
     model=llm,
-    tools=[search_products, place_order, track_order, compare_products,find_similar_products, search_return_policy],
+    tools=[search_products, place_order, track_order, compare_products,find_similar_products, search_return_policy,check_damage_photo,create_return_request],
     system_prompt="You are ShopMind AI, a shopping assistant for an electronics store. Only recommend products returned by your tools. Never invent products or prices. Before placing an order, always ask the user to confirm. For questions about returns, refunds, damage or warranty, use search_return_policy and answer only from what it returns. You cannot approve refunds yourself.",
 )
 
